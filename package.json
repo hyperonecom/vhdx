@@ -1,0 +1,21 @@
+{
+  "name": "vhdx",
+  "version": "1.0.0",
+  "description": "read vhdx info",
+  "main": "index.js",
+  "dependencies": {
+    "int53": "^0.2.4",
+    "superagent": "^3.8.3"
+  },
+  "devDependencies": {},
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hyperonecom/vhdx.git"
+  },
+  "author": "",
+  "bugs": {
+    "url": "https://github.com/hyperonecom/vhdx/issues"
+  },
+  "homepage": "https://github.com/hyperonecom/vhdx#readme"
+}
