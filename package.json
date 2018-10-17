@@ -4,8 +4,7 @@
   "description": "read vhdx info",
   "main": "index.js",
   "dependencies": {
-    "int53": "^0.2.4",
-    "superagent": "^3.8.3"
+    "int53": "^0.2.4"
   },
   "devDependencies": {},
   "scripts": {
