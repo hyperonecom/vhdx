@@ -30,6 +30,14 @@ vhdx.info(path.join(__dirname, 'differencing.vhdx'), (err, info) => {
     assert.ok(info.type === 'differencing');
 });
 
+vhdx
+    .promises
+    .info(path.join(__dirname, 'differencing.vhdx'))
+    .then(info => {
+        assert.ok(info.type === 'differencing');
+    })
+;
+
 /*
 vhdx.info('http://127.0.0.1:8080/dynamic_10G.vhdx', (err, info) => {
 

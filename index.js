@@ -2,6 +2,7 @@
 
 const getReader = require('./lib/reader');
 const int53 = require('int53');
+const util = require('util');
 
 const REGION_TABLE_OFFSET = 192 * 1024;
 // const REGION_TABLE_OFFSET = 256 * 1024;
@@ -206,16 +207,21 @@ const getVhdxInfo = (vhdx, callback) => vhdx.enumRegions((err, regions) => {
     });
 });
 
-module.exports.open = function(url, callback) {
-    getReader(url, (err, reader) => {
-        if (err) { return callback(err); }
-        load(reader, callback);
-    });
-};
+const open = (url, callback) => getReader(url, (err, reader) => {
+    if (err) { return callback(err); }
+    load(reader, callback);
+});
 
-module.exports.info = function(url, callback) {
-    module.exports.open(url, (err, vhdx) => {
-        if (err) { return callback(err); }
-        getVhdxInfo(vhdx, callback);
-    });
+const info = (url, callback) => open(url, (err, vhdx) => {
+    if (err) { return callback(err); }
+    getVhdxInfo(vhdx, callback);
+});
+
+module.exports = {
+    open
+  , info
+  , promises: {
+        open: util.promisify(open)
+      , info: util.promisify(info)
+    }
 };
