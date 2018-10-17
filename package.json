@@ -1,5 +1,5 @@
 {
-  "name": "vhdx",
+  "name": "@hyperone/vhdx",
   "version": "1.0.0",
   "description": "read vhdx info",
   "main": "index.js",
@@ -14,7 +14,7 @@
     "type": "git",
     "url": "git+https://github.com/hyperonecom/vhdx.git"
   },
-  "author": "",
+  "author": "Frederico Silva <frederico.silva@gmail.com>",
   "bugs": {
     "url": "https://github.com/hyperonecom/vhdx/issues"
   },
