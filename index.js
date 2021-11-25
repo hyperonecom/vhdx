@@ -2,7 +2,6 @@
 
 const getReader = require('./lib/reader');
 const int53 = require('int53');
-const util = require('util');
 
 const REGION_TABLE_OFFSET = 192 * 1024;
 // const REGION_TABLE_OFFSET = 256 * 1024;
@@ -32,19 +31,18 @@ const readGuid = (buffer, pos) => {
     ].join('-');
 };
 
-const load = (read, callback) => read(8, 0, (err, buf) => {
-    if (err) { return callback(err); }
+const load = async ({ read, close }) => {
+    const buf = await read(8, 0);
 
     const signature = buf.toString('ascii', 0, 8);
 
     if (signature !== 'vhdxfile') {
-        return callback(Error('wrong signature: "vhdxfile" is expected'));
+        throw Error('wrong signature: "vhdxfile" is expected');
     }
 
-    callback(undefined, {
-
-        enumRegions: callback => read(16, REGION_TABLE_OFFSET, (err, buf) => {
-            if (err) { return callback(err); }
+    return {
+        enumRegions: async() => {
+            let buf = await read(16, REGION_TABLE_OFFSET);
 
             /*
             struct VHDX_REGION_TABLE_HEADER {
@@ -67,29 +65,27 @@ const load = (read, callback) => read(8, 0, (err, buf) => {
             const signature = buf.toString('ascii', 0, 4);
 
             if (signature !== 'regi') {
-                return callback(Error('wrong signature: regi is expected'));
+                throw Error('wrong signature: regi is expected');
             }
 
-            read(32 * entryCount, REGION_TABLE_OFFSET + 16, (err, buf) => {
-                if (err) { return callback(err); }
+            buf = await read(32 * entryCount, REGION_TABLE_OFFSET + 16)
 
-                const regions = [];
+            const regions = [];
 
-                for (let i = 0; i < entryCount; i++) {
-                    const guid = readGuid(buf, i * 32);
-                    regions.push({
-                        guid: guid
-                      , name: knownRegions[guid] || 'unknown'
-                      , fileOffset: int53.readInt64LE(buf, i * 32 + 16)
-                    });
-                }
+            for (let i = 0; i < entryCount; i++) {
+                const guid = readGuid(buf, i * 32);
+                regions.push({
+                    guid: guid
+                  , name: knownRegions[guid] || 'unknown'
+                  , fileOffset: int53.readInt64LE(buf, i * 32 + 16)
+                });
+            }
 
-                callback(err, regions);
-            });
-        })
+            return regions;
+        }
 
-      , loadMetadataRegion: (offset, callback) => read(16, offset, (err, buf) => {
-            if (err) { return callback(err); }
+      , loadMetadataRegion: async offset => {
+            let buf = await read(16, offset);
 
             /*
             struct VHDX_METADATA_TABLE_HEADER {
@@ -115,33 +111,30 @@ const load = (read, callback) => read(8, 0, (err, buf) => {
 
             const metadata = [];
 
-            read(32 * entryCount, offset, (err, buf) => {
-                if (err) { return callback(err); }
+            buf = await read(32 * entryCount, offset);
 
+            const signature = buf.toString('ascii', 0, 8);
 
-                const signature = buf.toString('ascii', 0, 8);
+            if (signature !== 'metadata') {
+                throw Error('wrong signature: metadata is expected');
+            }
 
-                if (signature !== 'metadata') {
-                    return callback(Error('wrong signature: metadata is expected'));
-                }
+            for (let i = 0; i < entryCount; i++) {
+                const guid = readGuid(buf, i * 32);
 
-                for (let i = 0; i < entryCount; i++) {
-                    const guid = readGuid(buf, i * 32);
+                metadata.push({
+                    guid: guid
+                  , name: knownMetadataItems[guid] || 'unknown'
+                  , offset: buf.readInt32LE(i * 32 + 16)
+                  , length: buf.readInt32LE(i * 32 + 20)
+                });
+            }
 
-                    metadata.push({
-                        guid: guid
-                      , name: knownMetadataItems[guid] || 'unknown'
-                      , offset: buf.readInt32LE(i * 32 + 16)
-                      , length: buf.readInt32LE(i * 32 + 20)
-                    });
-                }
+            return metadata;
+        }
 
-                callback(err, metadata);
-            });
-        })
-
-      , readMetadataFileParameters: (offset, callback) => read(8, offset, (err, buf) => {
-            if (err) { return callback(err); }
+      , readMetadataFileParameters: async (offset) => {
+            const buf = await read(8, offset);
 
             /*
             struct VHDX_FILE_PARAMETERS {
@@ -153,75 +146,68 @@ const load = (read, callback) => read(8, 0, (err, buf) => {
             */
             const temp = buf.readInt32LE(4);
 
-            callback(err, {
+            return {
                 blockSize : buf.readInt32LE()
               , leaveBlocksAllocated: (temp & 0b01) === 0b01
               , hasParent : (temp & 0b10) === 0b10
-            });
-        })
+            };
+        }
 
-      , readMetadataSize: (offset, callback) => read(8, offset, (err, buf) => {
-            if (err) { return callback(err); }
+      , readMetadataSize: async offset => {
+            const buf = await read(8, offset);
 
             /*
             struct VHDX_VIRTUAL_DISK_SIZE {
                 UINT64 VirtualDiskSize;
             };
             */
-            callback(err, int53.readInt64LE(buf));
-        })
-    });
-});
+            return int53.readInt64LE(buf);
+        }
+      , close
+    };
+};
 
-const getVhdxInfo = (vhdx, callback) => vhdx.enumRegions((err, regions) => {
-    if (err) { return callback(err); }
-
+const getVhdxInfo = async vhdx => {
+    const regions = await vhdx.enumRegions();
     const region = regions.find(r => r.name === 'Metadata');
 
     if (!region) {
-        return callback(Error('region Metadata not found'));
+        throw Error('region Metadata not found');
     }
 
-    vhdx.loadMetadataRegion(region.fileOffset, (err, entries) => {
-        if (err) { return callback(err); }
+    const entries = await vhdx.loadMetadataRegion(region.fileOffset);
 
-        const fileParameters = entries.find(e => e.name === 'File Parameters');
-        if (!fileParameters) {
-            return callback(Error('metadata entry File Parameters not found'));
-        }
+    const fileParameters = entries.find(e => e.name === 'File Parameters');
+    if (!fileParameters) {
+        throw Error('metadata entry File Parameters not found');
+    }
 
-        const virtualDiskSize = entries.find(e => e.name === 'Virtual Disk Size');
-        if (!virtualDiskSize) {
-            return callback(Error('metadata entry Virtual Disk Size not found'));
-        }
+    const virtualDiskSize = entries.find(e => e.name === 'Virtual Disk Size');
+    if (!virtualDiskSize) {
+        throw Error('metadata entry Virtual Disk Size not found');
+    }
 
-        vhdx.readMetadataFileParameters(region.fileOffset + fileParameters.offset, (err, parameters) => {
-            if (err) { return callback(err); }
+    const parameters = await vhdx.readMetadataFileParameters(region.fileOffset + fileParameters.offset);
 
-            const type = parameters.hasParent ? 'differencing' : parameters.leaveBlocksAllocated ? 'fixed' : 'dynamic';
+    const type = parameters.hasParent ? 'differencing' : parameters.leaveBlocksAllocated ? 'fixed' : 'dynamic';
 
-            vhdx.readMetadataSize(region.fileOffset + virtualDiskSize.offset, (err, size) => {
-                callback(err, err || { type: type, size: size });
-            });
-        });
-    });
-});
+    const size = await vhdx.readMetadataSize(region.fileOffset + virtualDiskSize.offset)
+    return { type, size };
+};
 
-const open = (url, callback) => getReader(url, (err, reader) => {
-    if (err) { return callback(err); }
-    load(reader, callback);
-});
+const open = async url => {
+    const reader = await getReader(url);
+    return load(reader);
+};
 
-const info = (url, callback) => open(url, (err, vhdx) => {
-    if (err) { return callback(err); }
-    getVhdxInfo(vhdx, callback);
-});
+const info = async url => {
+    const vhdx = await open(url);
+    const info = await getVhdxInfo(vhdx);
+    await vhdx.close();
+    return info;
+};
 
 module.exports = {
     open
   , info
-  , promises: {
-        open: util.promisify(open)
-      , info: util.promisify(info)
-    }
 };
