@@ -38,7 +38,7 @@ const load = (read, callback) => read(8, 0, (err, buf) => {
     const signature = buf.toString('ascii', 0, 8);
 
     if (signature !== 'vhdxfile') {
-        return callback(new Error('wrong signature: vhdxfile is expected'));
+        return callback(new Error('wrong signature: "vhdxfile" is expected'));
     }
 
     callback(undefined, {
@@ -92,19 +92,19 @@ const load = (read, callback) => read(8, 0, (err, buf) => {
             if (err) { return callback(err); }
 
             /*
-            struct ​VHDX_METADATA_TABLE_HEADER​ {
+            struct VHDX_METADATA_TABLE_HEADER {
                 UINT64 Signature;    ->  8
                 UINT16 Reserved;     ->  2
-                UINT16 EntryCoun​t​;   ->  2
+                UINT16 EntryCount;   ->  2
                 UINT32 Reserved2[5]; ->  4
             }                           16
-            struct ​VHDX_METADATA_TABLE_ENTRY​ {
-                GUID ItemId​;            -> 16
+            struct VHDX_METADATA_TABLE_ENTRY {
+                GUID ItemId;            -> 16
                 UINT32 Offset;          ->  4
                 UINT32 Length;          ->  4
-                UINT32 IsUser​:1;        ->  4
-                UINT32 IsVirtualDisk​:1; ->  .
-                UINT32 IsRequired​:1;    ->  .
+                UINT32 IsUser:1;        ->  4
+                UINT32 IsVirtualDisk:1; ->  .
+                UINT32 IsRequired:1;    ->  .
                 UINT32 Reserved:29;     ->  .
                 UINT32 Reserved2;       ->  4
             }                              32
@@ -144,10 +144,10 @@ const load = (read, callback) => read(8, 0, (err, buf) => {
             if (err) { return callback(err); }
 
             /*
-            struct ​VHDX_FILE_PARAMETERS​ {
-                UINT32 BlockSiz​e​;
+            struct VHDX_FILE_PARAMETERS {
+                UINT32 BlockSize;
                 UINT32 LeaveBlocksAllocated:1;
-                UINT32 HasParent​:1;
+                UINT32 HasParent:1;
                 UINT32 Reserved:30;
             }
             */
@@ -164,8 +164,8 @@ const load = (read, callback) => read(8, 0, (err, buf) => {
             if (err) { return callback(err); }
 
             /*
-            struct ​VHDX_VIRTUAL_DISK_SIZE​ {
-                UINT64 VirtualDiskSize​;
+            struct VHDX_VIRTUAL_DISK_SIZE {
+                UINT64 VirtualDiskSize;
             };
             */
             callback(err, int53.readInt64LE(buf));
