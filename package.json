@@ -4,9 +4,8 @@
   "description": "read vhdx info",
   "main": "index.js",
   "dependencies": {
-    "int53": "^0.2.4"
+    "int53": "^1.0.0"
   },
-  "devDependencies": {},
   "scripts": {
     "test": "node ./test"
   },
