@@ -88,7 +88,7 @@ const load = (read, callback) => read(8, 0, (err, buf) => {
             });
         })
 
-      , loadMetadaRegion: (offset, callback) => read(16, offset, (err, buf) => {
+      , loadMetadataRegion: (offset, callback) => read(16, offset, (err, buf) => {
             if (err) { return callback(err); }
 
             /*
@@ -182,7 +182,7 @@ const getVhdxInfo = (vhdx, callback) => vhdx.enumRegions((err, regions) => {
         return callback(new Error('region Metadata not found'));
     }
 
-    vhdx.loadMetadaRegion(region.fileOffset, (err, entries) => {
+    vhdx.loadMetadataRegion(region.fileOffset, (err, entries) => {
         if (err) { return callback(err); }
 
         const fileParameters = entries.find(e => e.name === 'File Parameters');
