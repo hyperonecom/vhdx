@@ -38,7 +38,7 @@ const load = (read, callback) => read(8, 0, (err, buf) => {
     const signature = buf.toString('ascii', 0, 8);
 
     if (signature !== 'vhdxfile') {
-        return callback(new Error('wrong signature: "vhdxfile" is expected'));
+        return callback(Error('wrong signature: "vhdxfile" is expected'));
     }
 
     callback(undefined, {
@@ -67,7 +67,7 @@ const load = (read, callback) => read(8, 0, (err, buf) => {
             const signature = buf.toString('ascii', 0, 4);
 
             if (signature !== 'regi') {
-                return callback(new Error('wrong signature: regi is expected'));
+                return callback(Error('wrong signature: regi is expected'));
             }
 
             read(32 * entryCount, REGION_TABLE_OFFSET + 16, (err, buf) => {
@@ -122,7 +122,7 @@ const load = (read, callback) => read(8, 0, (err, buf) => {
                 const signature = buf.toString('ascii', 0, 8);
 
                 if (signature !== 'metadata') {
-                    return callback(new Error('wrong signature: metadata is expected'));
+                    return callback(Error('wrong signature: metadata is expected'));
                 }
 
                 for (let i = 0; i < entryCount; i++) {
@@ -179,7 +179,7 @@ const getVhdxInfo = (vhdx, callback) => vhdx.enumRegions((err, regions) => {
     const region = regions.find(r => r.name === 'Metadata');
 
     if (!region) {
-        return callback(new Error('region Metadata not found'));
+        return callback(Error('region Metadata not found'));
     }
 
     vhdx.loadMetadataRegion(region.fileOffset, (err, entries) => {
@@ -187,12 +187,12 @@ const getVhdxInfo = (vhdx, callback) => vhdx.enumRegions((err, regions) => {
 
         const fileParameters = entries.find(e => e.name === 'File Parameters');
         if (!fileParameters) {
-            return callback(new Error('metadata entry File Parameters not found'));
+            return callback(Error('metadata entry File Parameters not found'));
         }
 
         const virtualDiskSize = entries.find(e => e.name === 'Virtual Disk Size');
         if (!virtualDiskSize) {
-            return callback(new Error('metadata entry Virtual Disk Size not found'));
+            return callback(Error('metadata entry Virtual Disk Size not found'));
         }
 
         vhdx.readMetadataFileParameters(region.fileOffset + fileParameters.offset, (err, parameters) => {
