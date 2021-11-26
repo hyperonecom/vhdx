@@ -1,12 +1,21 @@
 ## usage
-```js
+```javascript
 const vhdx = require('@hyperone/vhdx');
 
-vhdx.info('http://example.com/test.vhdx', console.log);
-vhdx.info('C:\\disk.vhdx', console.log);
+const info = await vhdx.info('C:\\disk.vhdx');
 
 {
     type: 'dynamic'     //dynamic || fixed || differencing
   , size: 1073741824    //bytes
+  , ...
 }
+
+const info = await vhdx.info('http://example.com/test.vhdx');
+
+{
+    type: 'dynamic'     //dynamic || fixed || differencing
+  , size: 1073741824    //bytes
+  , ...
+}
+
 ```
