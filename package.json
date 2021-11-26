@@ -1,6 +1,6 @@
 {
   "name": "@hyperone/vhdx",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "read vhdx info",
   "main": "index.js",
   "dependencies": {
