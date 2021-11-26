@@ -27,6 +27,14 @@ describe('type', () => {
     })
 });
 
+test('identifier', async() => {
+    const info = await vhdx.info(path.join(__dirname, 'test', '619fac0faa0fefe11033bbd5.vhdx'));
+    
+    expect(info.type).toBe('dynamic');
+    expect(info.size).toBe(1 * 1024**3);
+    expect(info.metadata.id).toBe('619fac0faa0fefe11033bbd5');
+    expect(info.identifier).toBe('00000000-619F-AC0F-AA0F-EFE11033BBD5');
+});
 
 test('http', async() => {
 

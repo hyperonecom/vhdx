@@ -11,14 +11,116 @@ const knownRegions = {
   , '8B7CA206-4790-4B9A-B8FE-575F050F886E' : 'Metadata'
 };
 
-const knownMetadataItems = {
-    'CAA16737-FA36-4D43-B3B6-33F0AA44E76B' : 'File Parameters'
-  , '2FA54224-CD1B-4876-B211-5DBED83BF4B8' : 'Virtual Disk Size'
-  , 'BECA12AB-B2E6-4523-93EF-C309E000C746' : 'Page 83 Data'
-  , '8141BF1D-A96F-4709-BA47-F233A8FAAB5F' : 'Logical Sector Size'
-  , 'CDA348C7-445D-4471-9CC9-E9885251C556' : 'Physical Sector Size'
-  , 'A8D35F2D-B30B-454D-ABF7-D3D84834AB0C' : 'Parent Locator'
-};
+const knownMetadataItems = [
+    {
+        name: 'File Parameters'
+      , guid: 'CAA16737-FA36-4D43-B3B6-33F0AA44E76B'
+      , required: true
+      , handler: buf => {
+            /*
+            struct VHDX_FILE_PARAMETERS {
+                UINT32 BlockSize;
+                UINT32 LeaveBlocksAllocated:1;
+                UINT32 HasParent:1;
+                UINT32 Reserved:30;
+            }
+            */
+            const temp = buf.readInt32LE(4);
+
+            const raw = {
+                blockSize : buf.readInt32LE()
+              , leaveBlocksAllocated: (temp & 0b01) === 0b01
+              , hasParent : (temp & 0b10) === 0b10
+            };
+
+            return {
+                type: raw.hasParent ? 'differencing' : raw.leaveBlocksAllocated ? 'fixed' : 'dynamic'
+            }
+        }  
+    }
+  , {
+        name: 'Virtual Disk Size'
+      , guid: '2FA54224-CD1B-4876-B211-5DBED83BF4B8'
+      , required: true
+      , handler: buf => {
+            /*
+            struct VHDX_VIRTUAL_DISK_SIZE {
+                UINT64 VirtualDiskSize;
+            };
+            */
+            return { size: int53.readInt64LE(buf) };
+        }
+    }
+  , {
+        name: 'Page 83 Data'
+      , guid: 'BECA12AB-B2E6-4523-93EF-C309E000C746'
+      , handler: buf => {
+            /*
+            struct VHDX_PAGE83_DATA {
+                GUID Page83Data;
+            };            
+            */
+            return { identifier: readGuid(buf, 0) }
+        }
+    }
+  , {
+        name: 'Logical Sector Size'
+      , guid: '8141BF1D-A96F-4709-BA47-F233A8FAAB5F'
+      , required: true
+      , handler: buf => {
+            /*
+            struct VHDX_VIRTUAL_DISK_LOGICAL_SECTOR_SIZE {
+                UINT32 LogicalSectorSize;
+            };
+            */
+            return { logicalSectorSize: buf.readInt32LE() };
+        }
+    }
+  , {
+        name: 'Physical Sector Size'
+      , guid: 'CDA348C7-445D-4471-9CC9-E9885251C556'
+      , required: true
+      , handler: buf => {
+            /*
+            struct VHDX_VIRTUAL_DISK_PHYSICAL_SECTOR_SIZE {
+                UINT32 PhysicalSectorSize;
+            };
+            */
+            return { physicalSectorSize: buf.readInt32LE() };
+        }
+    }
+  , {
+        name: 'Parent Locator'
+      , guid: 'A8D35F2D-B30B-454D-ABF7-D3D84834AB0C'
+      , handler: buf => {
+            /*
+            struct VHDX_PARENT_LOCATOR_HEADER {
+                GUID LocatorType;
+                UINT16 Reserved;
+                UINT16 KeyValueCount;
+            };
+
+            struct VHDX_PARENT_LOCATOR_ENTRY {
+                UINT32 KeyOffset;
+                UINT32 ValueOffset;
+                UINT16 KeyLength;
+                UINT16 ValueLength;
+            };
+            */
+        }
+    }
+  , {
+        name: 'HyperOne Metadata'
+      , guid: '76C39310-D201-4E90-92EC-59D85640B187'
+      , handler: buf => {
+            //TODO:fix length, SetVirtualDiskMetadata is not respecting it
+            const length = buf.indexOf(Buffer.from([ 0x00, 0x00 ])) + 1;
+            
+            const str = buf.toString('utf16le', 0, length);
+            return { metadata: JSON.parse(str) };
+        }
+    }
+];
 
 const readGuid = (buffer, pos) => {
     const t = buffer.toString('hex', pos, pos + 16).toUpperCase();
@@ -124,45 +226,14 @@ const load = async ({ read, close }) => {
 
                 metadata.push({
                     guid: guid
-                  , name: knownMetadataItems[guid] || 'unknown'
                   , offset: buf.readInt32LE(i * 32 + 16)
                   , length: buf.readInt32LE(i * 32 + 20)
                 });
             }
-
+            
             return metadata;
         }
-
-      , readMetadataFileParameters: async (offset) => {
-            const buf = await read(8, offset);
-
-            /*
-            struct VHDX_FILE_PARAMETERS {
-                UINT32 BlockSize;
-                UINT32 LeaveBlocksAllocated:1;
-                UINT32 HasParent:1;
-                UINT32 Reserved:30;
-            }
-            */
-            const temp = buf.readInt32LE(4);
-
-            return {
-                blockSize : buf.readInt32LE()
-              , leaveBlocksAllocated: (temp & 0b01) === 0b01
-              , hasParent : (temp & 0b10) === 0b10
-            };
-        }
-
-      , readMetadataSize: async offset => {
-            const buf = await read(8, offset);
-
-            /*
-            struct VHDX_VIRTUAL_DISK_SIZE {
-                UINT64 VirtualDiskSize;
-            };
-            */
-            return int53.readInt64LE(buf);
-        }
+      , read
       , close
     };
 };
@@ -177,22 +248,23 @@ const getVhdxInfo = async vhdx => {
 
     const entries = await vhdx.loadMetadataRegion(region.fileOffset);
 
-    const fileParameters = entries.find(e => e.name === 'File Parameters');
-    if (!fileParameters) {
-        throw Error('metadata entry File Parameters not found');
+    const out = [];
+
+    for (const item of knownMetadataItems) {
+        const entry = entries.find(entry => entry.guid === item.guid);
+        
+        if (entry) {
+            const buf = await vhdx.read(entry.length, region.fileOffset + entry.offset);
+            out.push(...Object.entries(item.handler(buf)));
+            continue;
+        }
+
+        if (item.required) {
+            throw Error(`metadata: "${item.name}" not found`);
+        }
     }
-
-    const virtualDiskSize = entries.find(e => e.name === 'Virtual Disk Size');
-    if (!virtualDiskSize) {
-        throw Error('metadata entry Virtual Disk Size not found');
-    }
-
-    const parameters = await vhdx.readMetadataFileParameters(region.fileOffset + fileParameters.offset);
-
-    const type = parameters.hasParent ? 'differencing' : parameters.leaveBlocksAllocated ? 'fixed' : 'dynamic';
-
-    const size = await vhdx.readMetadataSize(region.fileOffset + virtualDiskSize.offset)
-    return { type, size };
+ 
+    return Object.fromEntries(out);
 };
 
 const open = async url => {
