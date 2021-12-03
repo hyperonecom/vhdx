@@ -52,7 +52,7 @@ const knownMetadataItems = [
         }
     }
   , {
-        name: 'Page 83 Data'
+        name: 'Virtual Disk ID'
       , guid: 'BECA12AB-B2E6-4523-93EF-C309E000C746'
       , handler: buf => {
             /*
