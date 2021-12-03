@@ -275,9 +275,11 @@ const open = async url => {
 
 const info = async url => {
     const vhdx = await open(url);
-    const info = await getVhdxInfo(vhdx);
-    await vhdx.close();
-    return info;
+    try {
+        return await getVhdxInfo(vhdx);
+    } finally {
+        await vhdx.close();
+    }
 };
 
 module.exports = {
