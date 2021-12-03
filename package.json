@@ -1,6 +1,6 @@
 {
   "name": "@hyperone/vhdx",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "read vhdx info",
   "main": "index.js",
   "dependencies": {
@@ -20,7 +20,7 @@
   "publishConfig": {
     "registry": "https://registry.npmjs.org",
     "access": "public"
-  },  
+  },
   "author": "Frederico Silva <frederico.silva@gmail.com>",
   "bugs": {
     "url": "https://github.com/hyperonecom/vhdx/issues"
