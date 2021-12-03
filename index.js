@@ -107,6 +107,7 @@ const knownMetadataItems = [
                 UINT16 ValueLength;
             };
             */
+            return {}; //TODO
         }
     }
   , {
@@ -208,7 +209,7 @@ const load = async ({ read, close }) => {
             }                              32
             */
 
-            const entryCount = buf.readInt32LE(10);
+            const entryCount = buf.readInt16LE(10) + 1;
             // console.log(`${entryCount} metadata entries`);
 
             const metadata = [];
