@@ -1,0 +1,20 @@
+#!/usr/bin/env node
+
+const filePath = process.argv [2];
+
+const vhdx = require('..');
+
+if (!filePath) {
+    console.error('Usage: vhdx <file>');
+    process.exit(-1);
+}
+
+const main = async () => {
+    const info = await vhdx.info(filePath);
+    console.log(info);
+};
+
+main().catch(err => {
+    console.error(err);
+    process.exit(-1);
+});

@@ -6,6 +6,9 @@
   "dependencies": {
     "int53": "^1.0.0"
   },
+  "bin": {
+    "vhdx": "./bin/vhdx"
+  },
   "scripts": {
     "test": "jest",
     "test:watch": "jest --watch"
