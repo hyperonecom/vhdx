@@ -17,6 +17,10 @@
     "type": "git",
     "url": "git+https://github.com/hyperonecom/vhdx.git"
   },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  },  
   "author": "Frederico Silva <frederico.silva@gmail.com>",
   "bugs": {
     "url": "https://github.com/hyperonecom/vhdx/issues"
